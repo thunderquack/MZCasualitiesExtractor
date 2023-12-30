@@ -1,6 +1,7 @@
 import httpx
 import re
 import time
+import json
 
 mz_page = 'https://zona.media/casualties'
 headers = {
@@ -47,3 +48,23 @@ while attempt < max_attempts:
 
 if attempt == max_attempts:
     print(f"Failed to retrieve the page after {max_attempts} attempts.")
+    exit(999)
+
+# Паттерн для извлечения значения переменной 'bo'
+bo_pattern = r'bo\s*=\s*JSON\.parse\(\'({.*?})\'\)'
+# Поиск соответствия в файле
+bo_match = re.search(bo_pattern, js, re.DOTALL)
+# Если найдено соответствие, извлекаем и суммируем все числа
+
+if bo_match:
+    try:
+        # Извлекаем JSON из строки и преобразуем его в объект Python
+        bo_data = json.loads(bo_match.group(1))
+        # Суммируем все числа во всех массивах
+        total_sum_bo = sum(sum(values) for values in bo_data.values())
+    except json.JSONDecodeError as e:
+        total_sum_bo = f"Error parsing JSON for 'bo': {e}"
+else:
+    total_sum_bo = "No match for variable 'bo' found."
+
+total_sum_bo
