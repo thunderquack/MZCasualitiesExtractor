@@ -5,6 +5,7 @@ import json
 import pandas as pd
 from datetime import timedelta
 from datetime import datetime
+import os
 
 mz_page = 'https://zona.media/casualties'
 headers = {
@@ -38,7 +39,6 @@ while attempt < max_attempts:
             print(f"Found JS URL: {url_js}")
             response = client.get(url_js, headers=headers)
             js = response.text
-            print(js)
             break  # Если успешно, выходим из цикла
         else:
             print(f"Error loading page: {response.status_code}")
@@ -59,9 +59,9 @@ bo_pattern = r'bo\s*=\s*JSON\.parse\(\'({.*?})\'\)'
 bo_match = re.search(bo_pattern, js, re.DOTALL)
 # Если найдено соответствие, извлекаем и суммируем все числа
 start_date = datetime(2022, 2, 24)
-csv_filename = 'last_data.csv'
+csv_filename = f'docs/last_data.csv'
 current_date = datetime.now().strftime('%Y-%m-%d')
-current_date_csv = f'{current_date}_cumsum.csv'
+current_date_csv = f'docs/{current_date}_cumsum.csv'
 
 if bo_match:
     try:
@@ -89,8 +89,6 @@ if bo_match:
         }
         df = pd.DataFrame(data)
         df['total'] = df['change'].cumsum()
-        df.to_csv(csv_filename, index=False)
-        df.to_csv(current_date_csv, index=False)
 
     except json.JSONDecodeError as e:
         total_sum_bo = f"Error parsing JSON for 'bo': {e}"
@@ -100,3 +98,9 @@ else:
     total_sum_bo = "No match for variable 'bo' found."
     print(total_sum_bo)
     exit(998)
+
+if not os.path.exists('./docs'):
+    os.mkdir('./docs')
+
+df.to_csv(csv_filename, index=False)
+df.to_csv(current_date_csv, index=False)
