@@ -59,9 +59,13 @@ bo_pattern = r'bo\s*=\s*JSON\.parse\(\'({.*?})\'\)'
 bo_match = re.search(bo_pattern, js, re.DOTALL)
 # Если найдено соответствие, извлекаем и суммируем все числа
 start_date = datetime(2022, 2, 24)
-csv_filename = f'docs/last_data.csv'
+
+# Path to the 'docs' directory
+docs_path = './docs'
+
+csv_filename = f'{docs_path}/last_data.csv'
 current_date = datetime.now().strftime('%Y-%m-%d')
-current_date_csv = f'docs/{current_date}_cumsum.csv'
+current_date_csv = f'{docs_path}/{current_date}_cumsum.csv'
 
 if bo_match:
     try:
@@ -99,8 +103,44 @@ else:
     print(total_sum_bo)
     exit(998)
 
-if not os.path.exists('./docs'):
-    os.mkdir('./docs')
+if not os.path.exists(docs_path):
+    os.mkdir(docs_path)
 
 df.to_csv(csv_filename, index=False)
 df.to_csv(current_date_csv, index=False)
+
+# Start of our HTML content
+html_content = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CSV Files</title>
+</head>
+<body>
+    <h1>CSV Files</h1>
+    <p><a href="last_data.csv">last_data.csv</a></p>
+    <p>Other CSV files:</p>
+    <ul>
+"""
+
+# Get a list of csv files in the docs directory, excluding last_data.csv
+csv_files = [f for f in os.listdir(docs_path) if f.endswith('.csv') and f != 'last_data.csv']
+
+# Sort files by date, assuming the format 'YYYY-MM-DD_filename.csv'
+csv_files.sort(reverse=True)
+
+# Add HTML list items for each CSV file
+for file in csv_files:
+    html_content += f'        <li><a href="{file}">{file}</a></li>\n'
+
+# End of our HTML content
+html_content += """
+    </ul>
+</body>
+</html>
+"""
+
+# Write the HTML content to index.html in the 'docs' directory
+with open(os.path.join(docs_path, 'index.html'), 'w') as html_file:
+    html_file.write(html_content)
