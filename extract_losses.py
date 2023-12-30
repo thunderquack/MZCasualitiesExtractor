@@ -2,6 +2,9 @@ import httpx
 import re
 import time
 import json
+import pandas as pd
+from datetime import timedelta
+from datetime import datetime
 
 mz_page = 'https://zona.media/casualties'
 headers = {
@@ -55,13 +58,36 @@ bo_pattern = r'bo\s*=\s*JSON\.parse\(\'({.*?})\'\)'
 # Поиск соответствия в файле
 bo_match = re.search(bo_pattern, js, re.DOTALL)
 # Если найдено соответствие, извлекаем и суммируем все числа
+start_date =  datetime(2022, 2, 24)
 
 if bo_match:
     try:
         # Извлекаем JSON из строки и преобразуем его в объект Python
         bo_data = json.loads(bo_match.group(1))
-        # Суммируем все числа во всех массивах
-        total_sum_bo = sum(sum(values) for values in bo_data.values())
+        rows = len(bo_data)
+        max_len=0
+        for key in bo_data:
+            max_len=max(len(bo_data[key]), max_len)
+        dates = list()
+        deltas = list()
+        for i in range(max_len):
+            date = start_date+timedelta(days=i)
+            dates.append(date)
+            s=0
+            for key in bo_data:
+                try:
+                    s+=bo_data[key][i]
+                except:
+                    pass
+            deltas.append(s)
+        data = {
+            "date": dates,
+            "change": deltas,
+        }
+        df = pd.DataFrame(data)
+        df['total'] = df['change'].cumsum()
+        print(df.tail())
+
     except json.JSONDecodeError as e:
         total_sum_bo = f"Error parsing JSON for 'bo': {e}"
 else:
