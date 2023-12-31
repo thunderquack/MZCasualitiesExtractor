@@ -6,6 +6,7 @@ import pandas as pd
 from datetime import timedelta
 from datetime import datetime
 import os
+import markdown
 
 mz_page = 'https://zona.media/casualties'
 headers = {
@@ -21,6 +22,24 @@ headers = {
     "Sec-Fetch-Site": "cross-site",
     "Sec-Fetch-User": "?1"
 }
+
+# Define the markdown content
+markdown_content = """
+# Russian Army verified losses
+
+## Index of CSV Files
+
+Welcome to the CSV repository index.
+
+### Latest Data
+
+Download the [latest data](last_data.csv)
+
+### Historical Data
+
+Below are the historical data files:
+
+"""
 
 url_pattern = r'https://[a-zA-Z0-9.-]*/infographics/bodycount/[a-zA-Z0-9.-]*\.js\.gz'
 
@@ -109,21 +128,6 @@ if not os.path.exists(docs_path):
 df.to_csv(csv_filename, index=False)
 df.to_csv(current_date_csv, index=False)
 
-# Start of our HTML content
-html_content = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>CSV Files</title>
-</head>
-<body>
-    <h1>CSV Files</h1>
-    <p><a href="last_data.csv">last_data.csv</a></p>
-    <p>Other CSV files:</p>
-    <ul>
-"""
-
 # Get a list of csv files in the docs directory, excluding last_data.csv
 csv_files = [f for f in os.listdir(docs_path) if f.endswith('.csv') and f != 'last_data.csv']
 
@@ -131,16 +135,28 @@ csv_files = [f for f in os.listdir(docs_path) if f.endswith('.csv') and f != 'la
 csv_files.sort(reverse=True)
 
 # Add HTML list items for each CSV file
-for file in csv_files:
-    html_content += f'        <li><a href="{file}">{file}</a></li>\n'
+for filename in csv_files:
+    if filename != 'last_data.csv':
+        markdown_content += f"- [{filename}]({filename})\n"
 
-# End of our HTML content
-html_content += """
-    </ul>
+# Convert markdown to HTML
+html_content = markdown.markdown(markdown_content)
+
+# Start of our HTML content
+html_document = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russian Army verified losses</title>
+</head>
+<body>
+    {html_content}
 </body>
 </html>
 """
 
 # Write the HTML content to index.html in the 'docs' directory
 with open(os.path.join(docs_path, 'index.html'), 'w') as html_file:
-    html_file.write(html_content)
+    html_file.write(html_document)
