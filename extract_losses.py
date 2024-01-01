@@ -184,3 +184,30 @@ html_document = f"""
 # Write the HTML content to index.html in the 'docs' directory
 with open(os.path.join(docs_path, 'index.html'), 'w') as html_file:
     html_file.write(html_document)
+
+readme_document = f"""
+# Russian Army verified losses
+
+## Losses
+
+As of **{current_date}** there are **{total_casualities}** confirmed[^1] fatalities
+
+## Chart
+
+![7-Day Intervals Bar Chart]({chart_path})
+
+## Archive
+
+https://thunderquack.github.io/MZCasualitiesExtractor
+
+## Source
+
+https://zona.media/casualties
+
+---
+
+[^1]: "Confirmed" means each death is supported by a name, obituary, tomb photo, etc.
+"""
+
+with open('README.md', 'w') as readme_file:
+    readme_file.write(readme_document)
