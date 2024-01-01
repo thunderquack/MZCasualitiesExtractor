@@ -7,6 +7,7 @@ from datetime import timedelta
 from datetime import datetime
 import os
 import markdown
+import matplotlib.pyplot as plt
 
 mz_page = 'https://zona.media/casualties'
 headers = {
@@ -29,7 +30,7 @@ markdown_content = """
 
 ## Index of CSV Files
 
-Welcome to the CSV repository index.
+Welcome to the CSV index.
 
 ### Latest Data
 
@@ -83,8 +84,10 @@ start_date = datetime(2022, 2, 24)
 docs_path = './docs'
 
 csv_filename = f'{docs_path}/last_data.csv'
+chart_file_name = "7days.svg"
 current_date = datetime.now().strftime('%Y-%m-%d')
 current_date_csv = f'{docs_path}/{current_date}_cumsum.csv'
+chart_path = f'{docs_path}/{chart_file_name}'
 
 if bo_match:
     try:
@@ -128,6 +131,25 @@ if not os.path.exists(docs_path):
 df.to_csv(csv_filename, index=False)
 df.to_csv(current_date_csv, index=False)
 
+df.set_index('date', inplace=True)
+weekly_sum = df['change'].resample('7D').sum()
+
+total_casualities = df['change'].sum()
+
+# Построим новую столбчатую диаграмму
+
+plt.figure(figsize=(15, 7))
+weekly_sum.plot(kind='bar', color='royalblue')
+plt.title('Casualities / Week')
+plt.xlabel('Date')
+plt.ylabel('Casualities')
+plt.xticks(ticks=range(len(weekly_sum.index)), labels=[d.strftime('%Y-%m-%d') for d in weekly_sum.index], rotation=90)
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.tight_layout()
+
+plt.savefig(chart_path)
+plt.close()
+
 # Get a list of csv files in the docs directory, excluding last_data.csv
 csv_files = [f for f in os.listdir(docs_path) if f.endswith('.csv') and f != 'last_data.csv']
 
@@ -138,6 +160,8 @@ csv_files.sort(reverse=True)
 for filename in csv_files:
     if filename != 'last_data.csv':
         markdown_content += f"- [{filename}]({filename})\n"
+
+markdown_content+=f"<br>![7-Day Intervals Bar Chart]({chart_file_name})\n"
 
 # Convert markdown to HTML
 html_content = markdown.markdown(markdown_content)
