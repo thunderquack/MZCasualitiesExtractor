@@ -3,7 +3,7 @@
 
 ## Losses
 
-As of **2024-01-02** there are **29235** confirmed[^1] fatalities
+As of **2024-01-03** there are **29235** confirmed[^1] fatalities
 
 ## Chart
 
