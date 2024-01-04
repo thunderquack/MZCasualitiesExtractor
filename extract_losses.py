@@ -77,6 +77,12 @@ if attempt == max_attempts:
 bo_pattern = r'bo\s*=\s*JSON\.parse\(\'({.*?})\'\)'
 # Поиск соответствия в файле
 bo_match = re.search(bo_pattern, js, re.DOTALL)
+
+# Паттерн для извлечения значения 'ko'
+ko_pattern = r'ko\s*=\s*JSON\.parse\(\'(\[.*?\])\'\)'
+# Поиск соответствия в файле
+ko_match = re.search(ko_pattern, js, re.DOTALL)
+
 # Если найдено соответствие, извлекаем и суммируем все числа
 start_date = datetime(2022, 2, 24)
 
@@ -124,6 +130,14 @@ else:
     total_sum_bo = "No match for variable 'bo' found."
     print(total_sum_bo)
     exit(998)
+
+if ko_match:
+    try:
+        # Извлекаем JSON из строки и преобразуем его в объект Python
+        var_text = ko_match.group(1)
+        ko_data = json.loads(var_text.strip('\'"'))
+    except:
+        pass
 
 if not os.path.exists(docs_path):
     os.mkdir(docs_path)
