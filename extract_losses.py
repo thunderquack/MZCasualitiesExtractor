@@ -131,11 +131,16 @@ else:
     print(total_sum_bo)
     exit(998)
 
+sum_v = 0
+sum_o = 0
+
 if ko_match:
     try:
         # Извлекаем JSON из строки и преобразуем его в объект Python
         var_text = ko_match.group(1)
         ko_data = json.loads(var_text.strip('\'"'))
+        sum_v = sum(item['v'] for item in ko_data)
+        sum_o = sum(item['o'] for item in ko_data)
     except:
         pass
 
@@ -148,7 +153,7 @@ df.to_csv(current_date_csv, index=False)
 df.set_index('date', inplace=True)
 weekly_sum = df['change'].resample('7D').sum()
 
-total_casualities = df['change'].sum()
+total_casualties = df['change'].sum()
 
 # Построим новую столбчатую диаграмму
 
@@ -200,11 +205,13 @@ with open(os.path.join(docs_path, 'index.html'), 'w') as html_file:
     html_file.write(html_document)
 
 readme_document = f"""
-# Russian Army verified losses
+# Confirmed Losses of the Russian Army
 
-## Losses
+## Casualties
 
-As of **{current_date}** there are **{total_casualities}** confirmed[^1] fatalities
+As of **{current_date}**, there have been **{sum_v}** confirmed[^1] fatalities.
+Of these, **{total_casualties}** have a known date of death.
+**{sum_o}** were officers.
 
 ## Chart
 
