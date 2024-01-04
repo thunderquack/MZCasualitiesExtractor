@@ -1,9 +1,11 @@
 
-# Russian Army verified losses
+# Confirmed Losses of the Russian Army
 
-## Losses
+## Casualties
 
-As of **2024-01-04** there are **29235** confirmed[^1] fatalities
+As of **2024-01-04**, there have been **40599** confirmed[^1] fatalities.
+Of these, **29235** have a known date of death.
+**2989** were officers.
 
 ## Chart
 
