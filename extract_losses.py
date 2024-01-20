@@ -166,6 +166,28 @@ weekly_sum = df['change'].resample('7D').sum()
 
 total_casualties = df['change'].sum()
 
+csv_files = sorted([f for f in os.listdir(docs_path) if f.endswith('.csv')], reverse=True)
+
+# Считывание содержимого самого нового файла
+current_file_path = os.path.join(docs_path, csv_files[0])
+with open(current_file_path, 'r') as file:
+    current_content = file.read()
+
+# Итерация по файлам в обратном порядке времени
+for previous_file in csv_files[1:]:
+    previous_file_path = os.path.join(docs_path, previous_file)
+    with open(previous_file_path, 'r') as file:
+        previous_content = file.read()
+    
+    # Сравнение содержимого файла с текущим
+    if previous_content != current_content:
+        # Файл найден, выводим его дату и прерываем цикл
+        print(f"Содержимое файла изменилось в: {previous_file}")
+        break
+    else:
+        # Обновление "текущего" содержимого для следующей итерации сравнения
+        current_content = previous_content
+
 # Построим новую столбчатую диаграмму
 
 plt.figure(figsize=(15, 7))
