@@ -188,6 +188,12 @@ for previous_file in csv_files[1:]:
         # Обновление "текущего" содержимого для следующей итерации сравнения
         current_content = previous_content
 
+previous_data = pd.read_csv(f'{docs_path}/{previous_file}')
+previous_data['date'] = pd.to_datetime(previous_data['date'])
+previous_data.set_index('date', inplace=True)
+previous_weekly_sum = previous_data['change'].resample('7D').sum()
+difference = weekly_sum.subtract(previous_weekly_sum, fill_value=0).astype(int)
+
 # Построим новую столбчатую диаграмму
 
 plt.figure(figsize=(15, 7))
