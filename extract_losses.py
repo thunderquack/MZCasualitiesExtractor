@@ -8,6 +8,7 @@ from datetime import datetime
 import os
 import markdown
 import matplotlib.pyplot as plt
+import subprocess
 
 mz_page = 'https://zona.media/casualties'
 headers = {
@@ -149,6 +150,16 @@ if not os.path.exists(docs_path):
 
 df.to_csv(csv_filename, index=False)
 df.to_csv(current_date_csv, index=False)
+
+command = ['git', 'show', f'HEAD:{csv_filename}']
+# Выполнение команды и получение результата
+try:
+    result = subprocess.check_output(command, universal_newlines=True)
+    with open('extracted_last_data.csv', 'w') as file:
+        file.write(result)
+    print("Файл успешно извлечен.")
+except subprocess.CalledProcessError as e:
+    print(f"Ошибка при выполнении команды: {e}")
 
 df.set_index('date', inplace=True)
 weekly_sum = df['change'].resample('7D').sum()
