@@ -197,14 +197,20 @@ difference = weekly_sum.subtract(previous_weekly_sum, fill_value=0).astype(int)
 # Построим новую столбчатую диаграмму
 
 plt.figure(figsize=(15, 7))
-weekly_sum.plot(kind='bar', color='royalblue')
+weekly_sum.index = pd.to_datetime(weekly_sum.index)
+difference.index = pd.to_datetime(difference.index)
+plt.bar(weekly_sum.index, weekly_sum, width=5, color='royalblue', label='Weekly Sum')
+plt.bar(difference.index, difference, bottom=weekly_sum, width=5, color='forestgreen', label='Difference')
+for idx, (ws_val, diff_val) in enumerate(zip(weekly_sum, difference)):
+    if diff_val != 0:  # Если разница не равна нулю, показываем подпись
+        plt.text(weekly_sum.index[idx], ws_val + diff_val, f'{diff_val}', ha='center', va='bottom', color='forestgreen')
 plt.title('Casualities / Week')
 plt.xlabel('Date')
 plt.ylabel('Casualities')
-plt.xticks(ticks=range(len(weekly_sum.index)), labels=[d.strftime('%Y-%m-%d') for d in weekly_sum.index], rotation=90)
+plt.xticks(ticks=weekly_sum.index, labels=[d.strftime('%Y-%m-%d') for d in weekly_sum.index], rotation=90)
 plt.grid(axis='y', linestyle='--', alpha=0.7)
+# plt.legend()
 plt.tight_layout()
-
 plt.savefig(chart_path)
 plt.close()
 
