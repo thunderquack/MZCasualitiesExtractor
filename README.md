@@ -3,7 +3,7 @@
 
 ## Casualties
 
-As of **2024-01-28**, there have been **42284** confirmed[^1] fatalities.
+As of **2024-01-29**, there have been **42284** confirmed[^1] fatalities.
 Of these, **32812** have a known date of death.
 **3053** were officers.
 
