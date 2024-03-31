@@ -43,7 +43,7 @@ Below are the historical data files:
 
 """
 
-url_pattern = r'https://[a-zA-Z0-9.-]*/infographics/bodycount/[a-zA-Z0-9.-]*\.js'
+url_pattern = r'https://[a-zA-Z0-9.-]*/infographics/bodycount/[a-zA-Z0-9.-]*\.js\.gz'
 
 max_attempts = 100
 attempt = 0
@@ -74,35 +74,15 @@ if attempt == max_attempts:
     print(f"Failed to retrieve the page after {max_attempts} attempts.")
     exit(999)
 
-# Паттерн для извлечения дневных трат
-daily_pattern = r'!\*\*\* \./data/deathDates\.json \*\*\*!(.*?)webpack:\/\/gruz200\/\./data/deathDates\.json'
-daily_match = re.search(daily_pattern, js, re.DOTALL)
-inner_pattern = r'JSON\.parse\(\'({.*?})\'\)'
-if (daily_match):
-    pre_match = daily_match.group(1)
-    daily_match = re.search(inner_pattern, pre_match, re.DOTALL)
-    if (daily_match):
-        daily_data = daily_match.group(1)
-        print(daily_data)
-
 # Паттерн для извлечения значения переменной 'bo'
 bo_pattern = r'bo\s*=\s*JSON\.parse\(\'({.*?})\'\)'
-
 # Поиск соответствия в файле
-bo_match_string = daily_match.group(1).encode().decode('unicode_escape').strip('"')
+bo_match = re.search(bo_pattern, js, re.DOTALL)
 
-daily_pattern = r'!\*\*\* \./data/dataDaily\.json \*\*\*!(.*?)webpack:\/\/gruz200\/\./data/dataDaily\.json'
-daily_match = re.search(daily_pattern, js, re.DOTALL)
-inner_pattern = r'JSON\.parse\(\'({.*?})\'\)'
-if (daily_match):
-    pre_match = daily_match.group(1)
-    daily_match = re.search(inner_pattern, pre_match, re.DOTALL)
-    if (daily_match):
-        daily_data = daily_match.group(1)
-        print(daily_data)
-
+# Паттерн для извлечения значения 'ko'
+ko_pattern = r'ko\s*=\s*JSON\.parse\(\'(\[.*?\])\'\)'
 # Поиск соответствия в файле
-ko_match = daily_match
+ko_match = re.search(ko_pattern, js, re.DOTALL)
 
 # Если найдено соответствие, извлекаем и суммируем все числа
 start_date = datetime(2022, 2, 24)
@@ -116,10 +96,10 @@ current_date = datetime.now().strftime('%Y-%m-%d')
 current_date_csv = f'{docs_path}/{current_date}_cumsum.csv'
 chart_path = f'{docs_path}/{chart_file_name}'
 
-if daily_match:
+if bo_match:
     try:
         # Извлекаем JSON из строки и преобразуем его в объект Python
-        bo_data = json.loads(bo_match_string)
+        bo_data = json.loads(bo_match.group(1))
         rows = len(bo_data)
         max_len = 0
         for key in bo_data:
@@ -159,9 +139,9 @@ if ko_match:
     try:
         # Извлекаем JSON из строки и преобразуем его в объект Python
         var_text = ko_match.group(1)
-        ko_data = json.loads(var_text.encode().decode('unicode_escape').strip('"'))
-        sum_v = sum(sum(pair[1] for pair in day['d']) for day in ko_data['dates'])
-        # sum_o = sum(item['o'] for item in ko_data)
+        ko_data = json.loads(var_text.strip('\'"'))
+        sum_v = sum(item['v'] for item in ko_data)
+        sum_o = sum(item['o'] for item in ko_data)
     except:
         pass
 
@@ -186,8 +166,7 @@ weekly_sum = df['change'].resample('7D').sum()
 
 total_casualties = df['change'].sum()
 
-csv_files = sorted([f for f in os.listdir(docs_path)
-                   if f.endswith('.csv')], reverse=True)
+csv_files = sorted([f for f in os.listdir(docs_path) if f.endswith('.csv')], reverse=True)
 
 # Считывание содержимого самого нового файла
 current_file_path = os.path.join(docs_path, csv_files[0])
@@ -199,7 +178,7 @@ for previous_file in csv_files[1:]:
     previous_file_path = os.path.join(docs_path, previous_file)
     with open(previous_file_path, 'r') as file:
         previous_content = file.read()
-
+    
     # Сравнение содержимого файла с текущим
     if previous_content != current_content:
         # Файл найден, выводим его дату и прерываем цикл
@@ -220,19 +199,15 @@ difference = weekly_sum.subtract(previous_weekly_sum, fill_value=0).astype(int)
 plt.figure(figsize=(15, 7))
 weekly_sum.index = pd.to_datetime(weekly_sum.index)
 difference.index = pd.to_datetime(difference.index)
-plt.bar(weekly_sum.index, weekly_sum-difference,
-        width=5, color='royalblue', label='Weekly Sum')
-plt.bar(difference.index, difference, bottom=weekly_sum-difference,
-        width=5, color='forestgreen', label='Difference')
+plt.bar(weekly_sum.index, weekly_sum-difference, width=5, color='royalblue', label='Weekly Sum')
+plt.bar(difference.index, difference, bottom=weekly_sum-difference, width=5, color='forestgreen', label='Difference')
 for idx, (ws_val, diff_val) in enumerate(zip(weekly_sum-difference, difference)):
     if diff_val != 0:  # Если разница не равна нулю, показываем подпись
-        plt.text(weekly_sum.index[idx], ws_val + diff_val,
-                 f'{diff_val}', ha='center', va='bottom', color='forestgreen')
+        plt.text(weekly_sum.index[idx], ws_val + diff_val, f'{diff_val}', ha='center', va='bottom', color='forestgreen')
 plt.title('Casualities / Week')
 plt.xlabel('Date')
 plt.ylabel('Casualities')
-plt.xticks(ticks=weekly_sum.index, labels=[d.strftime(
-    '%Y-%m-%d') for d in weekly_sum.index], rotation=90)
+plt.xticks(ticks=weekly_sum.index, labels=[d.strftime('%Y-%m-%d') for d in weekly_sum.index], rotation=90)
 plt.grid(axis='y', linestyle='--', alpha=0.7)
 # plt.legend()
 plt.tight_layout()
@@ -240,8 +215,7 @@ plt.savefig(chart_path)
 plt.close()
 
 # Get a list of csv files in the docs directory, excluding last_data.csv
-csv_files = [f for f in os.listdir(docs_path) if f.endswith(
-    '.csv') and f != 'last_data.csv']
+csv_files = [f for f in os.listdir(docs_path) if f.endswith('.csv') and f != 'last_data.csv']
 
 # Sort files by date, assuming the format 'YYYY-MM-DD_filename.csv'
 csv_files.sort(reverse=True)
@@ -251,7 +225,7 @@ for filename in csv_files:
     if filename != 'last_data.csv':
         markdown_content += f"- [{filename}]({filename})\n"
 
-markdown_content += f"<br>![7-Day Intervals Bar Chart]({chart_file_name})\n"
+markdown_content+=f"<br>![7-Day Intervals Bar Chart]({chart_file_name})\n"
 
 # Convert markdown to HTML
 html_content = markdown.markdown(markdown_content)
@@ -282,6 +256,7 @@ readme_document = f"""
 
 As of **{current_date}**, there have been **{sum_v}** confirmed[^1] fatalities.
 Of these, **{total_casualties}** have a known date of death.
+**{sum_o}** were officers.
 
 ## Chart
 
