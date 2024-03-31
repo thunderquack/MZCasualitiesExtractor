@@ -76,7 +76,7 @@ if attempt == max_attempts:
 
 # Паттерн для извлечения значения переменной 'bo'
 # там барахло вида {"0":[4,36,3, и т.п., строк 19 штук, а внутри на каждый день потеря
-        
+
 so_pattern = r'So\s*=\s*JSON\.parse\s*\(\s*\'({.*?})\'\s*\)'
 bo_match_string = re.search(so_pattern, js, re.DOTALL)
 # Если найдено соответствие, извлекаем и суммируем все числа
@@ -127,8 +127,14 @@ else:
     print(total_sum_bo)
     exit(998)
 
+sum_pattern = r'{\"w\":\"current_total\",\"rnd\":.*?,\"real\":(.*?)}'
+sum_result = re.search(sum_pattern, js, re.DOTALL)
+
 sum_v = 0
 sum_o = 0
+
+if (sum_result):
+    sum_v = sum_result.group(1)
 
 if not os.path.exists(docs_path):
     os.mkdir(docs_path)
