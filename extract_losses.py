@@ -43,7 +43,7 @@ Below are the historical data files:
 
 """
 
-url_pattern = r'https://[a-zA-Z0-9.-]*/infographics/bodycount/[a-zA-Z0-9.-]*\.js'
+url_pattern = r'https://[a-zA-Z0-9.-]*/infographics/bodycount/[a-zA-Z0-9.-]*\.js\.gz'
 
 max_attempts = 100
 attempt = 0
@@ -74,36 +74,11 @@ if attempt == max_attempts:
     print(f"Failed to retrieve the page after {max_attempts} attempts.")
     exit(999)
 
-# Паттерн для извлечения дневных трат
-daily_pattern = r'!\*\*\* \./data/deathDates\.json \*\*\*!(.*?)webpack:\/\/gruz200\/\./data/deathDates\.json'
-daily_match = re.search(daily_pattern, js, re.DOTALL)
-inner_pattern = r'JSON\.parse\(\'({.*?})\'\)'
-if (daily_match):
-    pre_match = daily_match.group(1)
-    daily_match = re.search(inner_pattern, pre_match, re.DOTALL)
-    if (daily_match):
-        daily_data = daily_match.group(1)
-        print(daily_data)
-
 # Паттерн для извлечения значения переменной 'bo'
-bo_pattern = r'bo\s*=\s*JSON\.parse\(\'({.*?})\'\)'
-
-# Поиск соответствия в файле
-bo_match_string = daily_match.group(1).encode().decode('unicode_escape').strip('"')
-
-daily_pattern = r'!\*\*\* \./data/dataDaily\.json \*\*\*!(.*?)webpack:\/\/gruz200\/\./data/dataDaily\.json'
-daily_match = re.search(daily_pattern, js, re.DOTALL)
-inner_pattern = r'JSON\.parse\(\'({.*?})\'\)'
-if (daily_match):
-    pre_match = daily_match.group(1)
-    daily_match = re.search(inner_pattern, pre_match, re.DOTALL)
-    if (daily_match):
-        daily_data = daily_match.group(1)
-        print(daily_data)
-
-# Поиск соответствия в файле
-ko_match = daily_match
-
+# там барахло вида {"0":[4,36,3, и т.п., строк 19 штук, а внутри на каждый день потеря
+        
+so_pattern = r'So\s*=\s*JSON\.parse\s*\(\s*\'({.*?})\'\s*\)'
+bo_match_string = re.search(so_pattern, js, re.DOTALL)
 # Если найдено соответствие, извлекаем и суммируем все числа
 start_date = datetime(2022, 2, 24)
 
@@ -116,10 +91,10 @@ current_date = datetime.now().strftime('%Y-%m-%d')
 current_date_csv = f'{docs_path}/{current_date}_cumsum.csv'
 chart_path = f'{docs_path}/{chart_file_name}'
 
-if daily_match:
+if bo_match_string:
     try:
         # Извлекаем JSON из строки и преобразуем его в объект Python
-        bo_data = json.loads(bo_match_string)
+        bo_data = json.loads(bo_match_string.group(1))
         rows = len(bo_data)
         max_len = 0
         for key in bo_data:
@@ -154,16 +129,6 @@ else:
 
 sum_v = 0
 sum_o = 0
-
-if ko_match:
-    try:
-        # Извлекаем JSON из строки и преобразуем его в объект Python
-        var_text = ko_match.group(1)
-        ko_data = json.loads(var_text.encode().decode('unicode_escape').strip('"'))
-        sum_v = sum(sum(pair[1] for pair in day['d']) for day in ko_data['dates'])
-        # sum_o = sum(item['o'] for item in ko_data)
-    except:
-        pass
 
 if not os.path.exists(docs_path):
     os.mkdir(docs_path)
