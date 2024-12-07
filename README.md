@@ -3,8 +3,8 @@
 
 ## Casualties
 
-As of **2024-12-06**, there have been **79819** confirmed[^1] fatalities.
-Of these, **60725** have a known date of death.
+As of **2024-12-07**, there have been **82050** confirmed[^1] fatalities.
+Of these, **62587** have a known date of death.
 
 ## Chart
 
