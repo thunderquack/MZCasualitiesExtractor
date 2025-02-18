@@ -78,7 +78,7 @@ if attempt == max_attempts:
 # там барахло вида {"0":[4,36,3, и т.п., строк 19 штук, а внутри на каждый день потеря
 # попробуй найди этот кусок - найдешь нужную переменную
 
-so_pattern = r'ZA\s*=\s*JSON\.parse\s*\(\s*\'({.*?})\'\s*\)'
+so_pattern = r'SA\s*=\s*JSON\.parse\s*\(\s*\'({.*?})\'\s*\)'
 bo_match_string = re.search(so_pattern, js, re.DOTALL)
 # Если найдено соответствие, извлекаем и суммируем все числа
 start_date = datetime(2022, 2, 24)
