@@ -3,7 +3,7 @@
 
 ## Casualties
 
-As of **2025-12-30**, there have been **156161** confirmed[^1] fatalities.
+As of **2025-12-31**, there have been **156161** confirmed[^1] fatalities.
 Of these, **128281** have a known date of death.
 
 ## Chart
