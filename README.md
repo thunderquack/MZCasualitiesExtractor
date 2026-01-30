@@ -3,8 +3,8 @@
 
 ## Casualties
 
-As of **2026-01-29**, there have been **163606** confirmed[^1] fatalities.
-Of these, **134471** have a known date of death.
+As of **2026-01-30**, there have been **168142** confirmed[^1] fatalities.
+Of these, **137930** have a known date of death.
 
 ## Chart
 
