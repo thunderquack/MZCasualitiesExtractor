@@ -43,36 +43,28 @@ Below are the historical data files:
 
 """
 
-url_pattern = r'https://[a-zA-Z0-9.-]*/infographics/bodycount/[a-zA-Z0-9.-]*\.js\.gz'
+url_pattern = r'https://[a-zA-Z0-9.-]+/infographics/bodycount/[a-zA-Z0-9.-]+\.js(?:\.(?:gz|br))?'
 
-max_attempts = 100
-attempt = 0
-
-while attempt < max_attempts:
-    try:
-        client = httpx.Client(http2=True)
-        response = client.get(mz_page, headers=headers)
-        if response.status_code == 200:
-            print('js is found')
-            page_content = response.text
-            js_gz_urls = re.findall(url_pattern, page_content)
-            url_js = js_gz_urls[0] if js_gz_urls else "URL is not found"
-            print(f"Found JS URL: {url_js}")
-            response = client.get(url_js, headers=headers)
+with httpx.Client(http2=True, follow_redirects=True, timeout=30) as client:
+    for attempt in range(3):
+        try:
+            response = client.get(mz_page, headers=headers)
+            response.raise_for_status()
+            urls = re.findall(url_pattern, response.text)
+            if not urls:
+                raise ValueError("Source page contains no bodycount JavaScript URL")
+            print(f"Found JS URL: {urls[-1]}", flush=True)
+            response = client.get(urls[-1], headers=headers)
+            response.raise_for_status()
             js = response.text
-            break  # Если успешно, выходим из цикла
-        else:
-            print(f"Error loading page: {response.status_code}")
-            attempt += 1
-            time.sleep(1)  # Задержка перед следующей попыткой
-    except httpx.RequestError as e:
-        print(f"Connection error on attempt {attempt}: {e}")
-        attempt += 1
-        time.sleep(1)  # Задержка перед следующей попыткой
-
-if attempt == max_attempts:
-    print(f"Failed to retrieve the page after {max_attempts} attempts.")
-    exit(999)
+            break
+        except (httpx.RequestError, httpx.HTTPStatusError) as error:
+            if isinstance(error, httpx.HTTPStatusError) and error.response.status_code < 500 and error.response.status_code != 429:
+                raise
+            if attempt == 2:
+                raise
+            print(f"Temporary download error: {error}", flush=True)
+            time.sleep(2)
 
 # Паттерн для извлечения значения переменной 'bo'
 # там барахло вида {"0":[4,36,3, и т.п., строк 19 штук, а внутри на каждый день потеря
@@ -92,50 +84,50 @@ current_date = datetime.now().strftime('%Y-%m-%d')
 current_date_csv = f'{docs_path}/{current_date}_cumsum.csv'
 chart_path = f'{docs_path}/{chart_file_name}'
 
-if bo_match_string:
+# Identify embedded payloads by structure rather than minified variable names.
+payloads = []
+for match in re.finditer(r"JSON\.parse\(\s*'((?:\\.|[^'\\])*)'\s*\)", js):
+    # The source uses JS single-quoted strings containing JSON.
+    literal = match.group(1).replace("\\'", "'")
     try:
-        # Извлекаем JSON из строки и преобразуем его в объект Python
-        bo_data = json.loads(bo_match_string.group(1))
-        rows = len(bo_data)
-        max_len = 0
-        for key in bo_data:
-            max_len = max(len(bo_data[key]), max_len)
-        dates = list()
-        deltas = list()
-        for i in range(max_len):
-            date = start_date+timedelta(days=i)
-            dates.append(date)
-            s = 0
-            for key in bo_data:
-                try:
-                    s += bo_data[key][i]
-                except:
-                    pass
-            deltas.append(s)
-        data = {
-            "date": dates,
-            "change": deltas,
-        }
-        df = pd.DataFrame(data)
-        df['total'] = df['change'].cumsum()
-
-    except json.JSONDecodeError as e:
-        total_sum_bo = f"Error parsing JSON for 'bo': {e}"
-        print(total_sum_bo)
-        exit(998)
-else:
-    total_sum_bo = "No match for variable 'bo' found."
-    print(total_sum_bo)
-    exit(998)
-
-sum_pattern = r'{\"w\":\"current_total\",\"rnd\":.*?,\"real\":(.*?)}'
-sum_result = re.search(sum_pattern, js, re.DOTALL)
-
-sum_v = 0
-sum_o = 0
-
-if (sum_result):
-    sum_v = sum_result.group(1)
+        payloads.append(json.loads(literal))
+    except json.JSONDecodeError:
+        continue
+candidates = [x for x in payloads if isinstance(x, dict) and {'years', 'days', 'dates'} <= x.keys()]
+if len(candidates) != 1:
+    raise ValueError("Expected exactly one dates payload")
+payload = candidates[0]
+days = payload['days']
+if type(days) is not int or days <= 0 or not payload['years'] or not isinstance(payload['dates'], dict):
+    raise ValueError("Invalid dates payload")
+deltas = [0] * days
+for category in payload['dates'].values():
+    if len(category) != len(payload['years']):
+        raise ValueError("Invalid year count")
+    for series in category:
+        position = 0
+        for value in series:
+            if type(value) is not int:
+                raise ValueError("Non-integer daily value")
+            if value < 0:
+                position -= value
+            else:
+                if position >= days:
+                    raise ValueError("Daily series exceeds declared length")
+                deltas[position] += value
+                position += 1
+            if position > days:
+                raise ValueError("Daily series exceeds declared length")
+records = [item for x in payloads if isinstance(x, list) for item in x
+           if isinstance(item, dict) and item.get('w') == 'current_total']
+if len(records) != 1 or type(records[0].get('real')) is not int:
+    raise ValueError("Missing or invalid current_total")
+sum_v = records[0]['real']
+if not 0 < sum(deltas) <= sum_v:
+    raise ValueError("Daily total is inconsistent with current_total")
+df = pd.DataFrame({'date': [start_date + timedelta(days=i) for i in range(days)], 'change': deltas})
+df['total'] = df['change'].cumsum()
+print(f"Validated {days} days, dated total {sum(deltas)}, confirmed total {sum_v}", flush=True)
 
 if not os.path.exists(docs_path):
     os.mkdir(docs_path)
@@ -154,38 +146,23 @@ except subprocess.CalledProcessError as e:
     print(f"Ошибка при выполнении команды: {e}")
 
 df.set_index('date', inplace=True)
-weekly_sum = df['change'].resample('7D').sum()
+weekly_sum = df['change'].resample('7D', origin=start_date).sum()
 
 total_casualties = df['change'].sum()
 
-csv_files = sorted([f for f in os.listdir(docs_path)
-                   if f.endswith('.csv')], reverse=True)
-
-# Считывание содержимого самого нового файла
-current_file_path = os.path.join(docs_path, csv_files[0])
-with open(current_file_path, 'r') as file:
-    current_content = file.read()
-
-# Итерация по файлам в обратном порядке времени
-for previous_file in csv_files[1:]:
-    previous_file_path = os.path.join(docs_path, previous_file)
-    with open(previous_file_path, 'r') as file:
-        previous_content = file.read()
-
-    # Сравнение содержимого файла с текущим
-    if previous_content != current_content:
-        # Файл найден, выводим его дату и прерываем цикл
-        print(f"Содержимое файла изменилось в: {previous_file}")
+previous_data = df.copy()
+current_content = df.reset_index().to_csv(index=False)
+for filename in sorted(os.listdir(docs_path), reverse=True):
+    if not re.fullmatch(r'\d{4}-\d{2}-\d{2}_cumsum\.csv', filename):
+        continue
+    candidate = pd.read_csv(os.path.join(docs_path, filename), parse_dates=['date']).set_index('date')
+    if candidate.reset_index().to_csv(index=False) != current_content:
+        previous_data = candidate
+        print(f"Comparing with {filename}")
         break
-    else:
-        # Обновление "текущего" содержимого для следующей итерации сравнения
-        current_content = previous_content
-
-previous_data = pd.read_csv(f'{docs_path}/{previous_file}')
-previous_data['date'] = pd.to_datetime(previous_data['date'])
-previous_data.set_index('date', inplace=True)
-previous_weekly_sum = previous_data['change'].resample('7D').sum()
-difference = weekly_sum.subtract(previous_weekly_sum, fill_value=0).astype(int)
+previous_weekly_sum = previous_data['change'].resample('7D', origin=start_date).sum()
+weekly_sum, previous_weekly_sum = weekly_sum.align(previous_weekly_sum, fill_value=0)
+difference = (weekly_sum - previous_weekly_sum).astype(int)
 
 # Построим новую столбчатую диаграмму
 
