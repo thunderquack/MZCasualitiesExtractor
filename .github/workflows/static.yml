@@ -35,25 +35,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.x"
-
-      - name: Install JPEG libraries
-        run: sudo apt-get update && sudo apt-get install -y libjpeg-dev
-
       - name: Changing git settings
         run: |
           git config --global user.name 'thunderquack'
           git config --global user.email ${{ secrets.GH_EMAIL }}
           git pull --rebase
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt 
+      - name: Build extractor image
+        run: docker build --pull -t mz-extractor .
 
-      - name: Run extract_losses.py
-        run: python extract_losses.py
+      - name: Run extractor in Docker
+        run: |
+          docker run --rm --user "$(id -u):$(id -g)" \
+            --mount "type=bind,source=$GITHUB_WORKSPACE,target=/data" \
+            mz-extractor
 
       - name: Commit and push changes
         run: |
